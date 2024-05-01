@@ -5,12 +5,16 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser")
 const cors = require("cors");
 const ConnectDB = require("./src/Database/db");
+const authRouter = require("./src/routes/auth")
+
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors())
+
+app.use("/api/user/auth",authRouter);
 
 ConnectDB();
 
