@@ -1,0 +1,1 @@
+// Here, the schema for the required model will be implemented
