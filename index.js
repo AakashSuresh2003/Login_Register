@@ -3,13 +3,16 @@ const express = require("express")
 const app = express()
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser")
-const cors = require("cors")
+const cors = require("cors");
+const ConnectDB = require("./src/Database/db");
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors())
+
+ConnectDB();
 
 const PORT = process.env.PORT
 
