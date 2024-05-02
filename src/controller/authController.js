@@ -1,7 +1,7 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");;
+const nodemailer = require("nodemailer");
 
 const registerController = async (req, res) => {
   try {
@@ -46,11 +46,9 @@ const registerController = async (req, res) => {
           .json({ error: "Failed to send confirmation email" });
       } else {
         console.log("Email sent: " + info.response);
-        res
-          .status(200)
-          .json({
-            message: "Registration successful. Confirmation email sent.",
-          });
+        res.status(200).json({
+          message: "Registration successful. Confirmation email sent.",
+        });
       }
     });
 
@@ -92,4 +90,50 @@ const loginController = async (req, res) => {
   }
 };
 
-module.exports = { registerController, loginController };
+const forgetPassword = async (req, res) => {
+  try {
+    const {email} = req.body;
+  const user = await User.findOne({email});
+  if(!user) return res.status(404).json("User not found");
+  const token = jwt.sign({ id: user._id },process.env.RESET_PASSWORD_KEY,{
+    expiresIn:process.env.RESET_EXPIRES_IN
+  })
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_ID,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    to: email,
+    subject: "Password Reset Link",
+    text: token 
+  };
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.error("Error sending confirmation email:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to send confirmation email" });
+    } else {
+      console.log("Email sent: " + info.response);
+      res.status(200).json({
+        message: "Registration successful. Confirmation email sent.",
+      });
+    }
+  });
+  const restetToken = await User.updateOne({resetLink : token})
+  if(!restetToken) return res.status(404).json("Token Error")
+  res.status(201).json({Message :" Successfully sent reset password link"});
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Internal Server Error")
+  }
+};
+
+
+module.exports = { registerController, loginController , forgetPassword};
