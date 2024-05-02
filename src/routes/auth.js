@@ -3,10 +3,10 @@ const {
   registerController,
   loginController,
 } = require("../controller/authController");
-const authMiddleware = require("../middleware/authMiddleware");
+// const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
-router.use(authMiddleware)
+// router.use(authMiddleware)
 
 router.post("/register", registerController);
 

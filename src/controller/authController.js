@@ -1,6 +1,7 @@
 const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");;
 
 const registerController = async (req, res) => {
   try {
@@ -17,13 +18,46 @@ const registerController = async (req, res) => {
     const salt = await bcrypt.genSaltSync(10);
     const hashedPassword = await bcrypt.hashSync(password, salt);
 
-    const newUser = new User({ ...req.body, password: hashedPassword });
-    const saveUser = await newUser.save();
+    const newUser = new User({ username, email, password: hashedPassword });
 
-    res.status(200).json(newUser);
-    
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_ID,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      to: email,
+      subject: "Registration Confirmation",
+      text:
+        "Hello " +
+        username +
+        ",\n\n" +
+        "Thank you for registering on our platform.",
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error("Error sending confirmation email:", error);
+        return res
+          .status(500)
+          .json({ error: "Failed to send confirmation email" });
+      } else {
+        console.log("Email sent: " + info.response);
+        res
+          .status(200)
+          .json({
+            message: "Registration successful. Confirmation email sent.",
+          });
+      }
+    });
+
+    await newUser.save();
   } catch (err) {
-    res.status(500).json({ Error: err.message });
+    console.error("Error in registration:", err.message);
+    res.status(500).json({ error: "Registration failed" });
   }
 };
 
@@ -53,7 +87,6 @@ const loginController = async (req, res) => {
       })
       .status(200)
       .json(data);
-
   } catch (err) {
     res.status(500).json({ Error: err.message });
   }
