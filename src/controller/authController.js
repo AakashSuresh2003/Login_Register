@@ -2,6 +2,7 @@ const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const _ = require("lodash");
 
 const registerController = async (req, res) => {
   try {
@@ -90,50 +91,70 @@ const loginController = async (req, res) => {
   }
 };
 
-const forgetPassword = async (req, res) => {
+const forgetPasswordController = async (req, res) => {
   try {
-    const {email} = req.body;
-  const user = await User.findOne({email});
-  if(!user) return res.status(404).json("User not found");
-  const token = jwt.sign({ id: user._id },process.env.RESET_PASSWORD_KEY,{
-    expiresIn:process.env.RESET_EXPIRES_IN
-  })
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json("User not found");
+    const token = jwt.sign({ id: user._id }, process.env.RESET_PASSWORD_KEY, {
+      expiresIn: process.env.RESET_EXPIRES_IN,
+    });
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_ID,
-      pass: process.env.GMAIL_PASS,
-    },
-  });
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_ID,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
 
-  const mailOptions = {
-    to: email,
-    subject: "Password Reset Link",
-    text: token 
-  };
+    const mailOptions = {
+      to: email,
+      subject: "Password Reset Link",
+      text: token,
+    };
 
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.error("Error sending confirmation email:", error);
-      return res
-        .status(500)
-        .json({ error: "Failed to send confirmation email" });
-    } else {
-      console.log("Email sent: " + info.response);
-      res.status(200).json({
-        message: "Registration successful. Confirmation email sent.",
-      });
-    }
-  });
-  const restetToken = await User.updateOne({resetLink : token})
-  if(!restetToken) return res.status(404).json("Token Error")
-  res.status(201).json({Message :" Successfully sent reset password link"});
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.error("Error sending confirmation email:", error);
+        return res
+          .status(500)
+          .json({ error: "Failed to send confirmation email" });
+      } else {
+        console.log("Email sent: " + info.response);
+        res.status(200).json({
+          message: "Registration successful. Confirmation email sent.",
+        });
+      }
+    });
+    const restetToken = await User.updateOne({ resetLink: token });
+    if (!restetToken) return res.status(404).json("Token Error");
+    res.status(201).json({ Message: " Successfully sent reset password link" });
   } catch (err) {
     console.log(err);
-    res.status(500).json("Internal Server Error")
+    res.status(500).json("Internal Server Error");
   }
 };
 
+const resetPasswordController = async (req, res) => {
+  try {
+    const { resetLink, myPassword } = req.body;
+    const userData = await User.findOne({ resetLink });
+    if (!userData) return res.status(404).json("User data not found");
+    const salt = await bcrypt.genSaltSync(10);
+    const hashedPassword = await bcrypt.hashSync(myPassword, salt);
+    userData.password = hashedPassword;
+    await userData.save();
+    return res.status(200).json({ message: "Your password has been changed" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json("Internal server Error");
+  }
+};
 
-module.exports = { registerController, loginController , forgetPassword};
+module.exports = {
+  registerController,
+  loginController,
+  forgetPasswordController,
+  resetPasswordController,
+};
