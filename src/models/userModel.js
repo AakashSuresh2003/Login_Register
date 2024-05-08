@@ -24,10 +24,16 @@ const userSchema = mongoose.Schema(
       required: [true, "Password must be provided"],
       minLength: [6, "Password must be above 6 characters"],
     },
-    resetLink:{
-      type:String,
-      default:''
-    }
+    posts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Post",
+      },
+    ],
+    resetLink: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
